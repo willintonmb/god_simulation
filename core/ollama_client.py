@@ -14,10 +14,12 @@ def ask_ollama_async(prompt: str, callback, system: str = ""):
     """
     def _worker():
         try:
+            print("Pregunta: ",prompt)
             payload = {
                 "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False,
+                "think": False,
                 "options": {"temperature": 0.85, "num_predict": 80},
             }
             if system:
@@ -26,7 +28,7 @@ def ask_ollama_async(prompt: str, callback, system: str = ""):
             r.raise_for_status()
             data = r.json()
             text = data.get("response", "").strip()
-            print(text)
+            print("Respuesta: ",text)
             # Truncate to first sentence or 120 chars
             for sep in [".", "!", "?", "\n"]:
                 idx = text.find(sep)
