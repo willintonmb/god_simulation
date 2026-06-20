@@ -68,7 +68,7 @@ def draw_world(surf, world_objects, fonts):
 def make_defaults():
     defaults = [
         ("Aria",    "curioso",    "Una cientifica fascinada por lo desconocido."),
-        ("Rex",     "agresivo",   "Un guerrero que actua antes de pensar."),
+        ("Rex",     "agresivo",   "Un policia que busca que todo esté correcto."),
         ("Mila",    "amigable",   "Una panadera que ama compartir su comida."),
         ("Zeno",    "perezoso",   "Un filosofo que prefiere pensar a moverse."),
     ]
@@ -85,7 +85,7 @@ def make_defaults():
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("World Simulation - Simulador Multi-Agente")
+    pygame.display.set_caption("WORLD Simulation - Simulador Multi-Agente")
     clock  = pygame.time.Clock()
     fonts  = load_fonts()
     font_sm, font_md, font_lg = fonts
