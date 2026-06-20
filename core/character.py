@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Agente Personaje
+#  WORLD SIMULATION  –  Agente Personaje
 # ─────────────────────────────────────────────
 import math
 import random
@@ -212,7 +212,7 @@ class Character:
                 self._trigger_chat(self.target_char)
 
         elif self.state == S_CHAT:
-            self.action_timer -= dt
+            self.action_timer -= dt*10
             self.social = min(100, self.social + 5 * dt)
             if self.action_timer <= 0:
                 self._chat_cooldown = random.uniform(20, 40)
@@ -333,7 +333,7 @@ class Character:
                 f"Eres {other.name}, una persona {other.trait}. "
                 f"Historia: {other.backstory}. "
                 f"{self.name} te dijo: \"{original}\". "
-                f"Responde brevemente en espanol, maximo 20 palabras, en primera persona."
+                f"Responde brevemente en español, maximo 20 palabras, en primera persona."
             )
             def _cb2(txt):
                 other.bubble = SpeechBubble(txt)
@@ -353,7 +353,7 @@ class Character:
             f"Historia: {self.backstory}. "
             f"Tu nivel de {need_es.get(urgent, urgent)} es {val:.0f}/100. "
             f"Estado actual: {STATE_LABELS.get(self.state, self.state)}. "
-            f"Expresa en espanol lo que estas pensando ahora mismo, "
+            f"Expresa en español lo que estas pensando ahora mismo, "
             f"una sola frase corta, maximo 18 palabras, en primera persona."
         )
         def _cb(txt):

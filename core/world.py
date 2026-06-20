@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Objetos del Mundo
+#  WORLD SIMULATION  –  Objetos del Mundo
 # ─────────────────────────────────────────────
 import random
 import pygame

@@ -1,4 +1,4 @@
-# God Simulation — Simulador Multi-Agente
+# WORLD Simulation — Simulador Multi-Agente
 ### Pygame + Ollama  |  Español
 
 ## Instalación rápida
@@ -48,7 +48,7 @@ python main.py
 ## Estructura del proyecto
 
 ```
-god_simulation/
+WORLD_simulation/
 ├── main.py              ← Bucle principal
 ├── core/
 │   ├── config.py        ← Constantes y paleta

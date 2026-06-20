@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Componentes de UI
+#  WORLD SIMULATION  –  Componentes de UI
 # ─────────────────────────────────────────────
 import math, time
 import pygame
@@ -65,7 +65,7 @@ def draw_bottom_panel(surf, fonts, characters, selected, world_objects,
         surf.blit(hint2, (px + 20, py + ph//2 + 4))
 
     # ── Columna central: lista de población ──────
-    mx = 330
+    mx = 500
     head = font_sm.render("POBLACION", True, C_ACCENT)
     surf.blit(head, (px + mx, py + 8))
 

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Punto de entrada
+#  WORLD SIMULATION  –  Punto de entrada
 #  Ejecutar:  python main.py
 #
 #  Requisitos:
@@ -69,7 +69,7 @@ def make_defaults():
     defaults = [
         ("Aria",    "curioso",    "Una cientifica fascinada por lo desconocido."),
         ("Rex",     "agresivo",   "Un guerrero que actua antes de pensar."),
-        ("Mila",    "amigable",   "Una panaderia que ama compartir su comida."),
+        ("Mila",    "amigable",   "Una panadera que ama compartir su comida."),
         ("Zeno",    "perezoso",   "Un filosofo que prefiere pensar a moverse."),
     ]
     chars = []
@@ -85,7 +85,7 @@ def make_defaults():
 def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("God Simulation - Simulador Multi-Agente")
+    pygame.display.set_caption("World Simulation - Simulador Multi-Agente")
     clock  = pygame.time.Clock()
     fonts  = load_fonts()
     font_sm, font_md, font_lg = fonts
@@ -247,7 +247,7 @@ def main():
 
         # HUD superior
         fps_t = font_sm.render(
-            f"GOD SIMULATION  |  {len(characters)} almas  |  {clock.get_fps():.0f} fps  |  "
+            f"WORLD SIMULATION  |  {len(characters)} almas  |  {clock.get_fps():.0f} fps  |  "
             f"[N] Nuevo  [ESPACIO] Pausa  [T] Pensar",
             True, C_DIM
         )

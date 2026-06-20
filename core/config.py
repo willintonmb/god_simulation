@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Configuración
+#  WORLD SIMULATION  –  Configuración
 # ─────────────────────────────────────────────
 
 # Ventana
@@ -10,7 +10,7 @@ FPS = 30
 
 # Ollama
 OLLAMA_URL     = "http://localhost:11434/api/generate"
-OLLAMA_MODEL   = "qwen3.5:2b"
+OLLAMA_MODEL   = "qwen3.5:4b"
 OLLAMA_TIMEOUT = 80
 
 # Cuadrícula

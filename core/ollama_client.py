@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  GOD SIMULATION  –  Ollama Client
+#  WORLD SIMULATION  –  Ollama Client
 # ─────────────────────────────────────────────
 import threading
 import requests
