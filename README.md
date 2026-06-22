@@ -9,6 +9,7 @@ ollama pull llama3.2        # o: mistral, phi3, gemma
 ollama serve                # iniciar Ollama (si no está corriendo)
 python main.py
 ```
+<img width="1821" height="1011" alt="image" src="https://github.com/user-attachments/assets/2b0bccea-f42b-4e9e-8907-981f84b774ad" />
 
 ## Controles
 
