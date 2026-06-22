@@ -98,6 +98,8 @@ def draw_bottom_panel(surf, fonts, characters, selected, world_objects,
         ("T",        "Pedir pensamiento"),
         ("R",        "Regenerar mapa"),
         ("SUPR",     "Eliminar seleccionado"),
+        ("G",        "Regenerar mundo completo"),
+        ("L",        "Ver ruta de logs"),
         ("ESC",      "Deseleccionar"),
     ]
     for i, (k, desc) in enumerate(controles):
