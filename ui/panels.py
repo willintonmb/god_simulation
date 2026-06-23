@@ -65,7 +65,7 @@ def draw_bottom_panel(surf, fonts, characters, selected, world_objects,
         surf.blit(hint2, (px + 20, py + ph//2 + 4))
 
     # ── Columna central: lista de población ──────
-    mx = 500
+    mx = 1000
     head = font_sm.render("POBLACION", True, C_ACCENT)
     surf.blit(head, (px + mx, py + 8))
 

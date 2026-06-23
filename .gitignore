@@ -1,0 +1,5 @@
+/conversaciones/*
+/core/__pycache__/*
+/ui/__pycache__/*
+/data
+/analisis_output

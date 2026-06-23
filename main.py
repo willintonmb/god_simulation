@@ -6,11 +6,13 @@ import sys, math, random, time, os
 import pygame
 
 from core.config import *
-from core.world           import generate_world
-from core.character       import Character, PALETTE, STATE_LABELS, SpeechBubble
-from core.ollama_client   import check_ollama, list_models, ask_ollama_async
+from core.world             import generate_world
+from core.character         import (Character, PALETTE, STATE_LABELS,
+                                    SpeechBubble, set_research_logger)
+from core.ollama_client     import check_ollama, list_models, ask_ollama_async
 from core.character_factory import CharacterFactory
-from ui.panels            import draw_bottom_panel, draw_toasts, CreationModal, Toast
+from core.research_logger   import ResearchLogger
+from ui.panels              import draw_bottom_panel, draw_toasts, CreationModal, Toast
 
 
 # ── Fuentes ──────────────────────────────────
@@ -131,19 +133,30 @@ def main():
     models     = list_models() if ollama_ok else []
     model_used = models[0] if models else OLLAMA_MODEL
 
+    # ── Inicializar logger de investigación ──
+    research = ResearchLogger()
+    sim_elapsed = 0.0   # tiempo de simulación acumulado (excluye pausa)
+    set_research_logger(research, lambda: sim_elapsed)
+
     # Generar mundo y personajes
     world_objects = generate_world()
     characters    = generate_initial_characters(screen, fonts, ollama_ok)
 
+    # Registrar agentes iniciales
+    for c in characters:
+        research.log_agent_spawn(c)
+
     selected: Character | None = None
     toasts: list[Toast]        = []
-    sim_speed     = 1.0
-    paused        = False
-    modal         = CreationModal(fonts, TRAITS)
+    sim_speed          = 1.0
+    paused             = False
+    modal              = CreationModal(fonts, TRAITS)
     ollama_check_timer = 0.0
+    graph_flush_timer  = 60.0   # flush del grafo social cada 60 s de simulación
 
-    # Directorio de logs
+    # Directorios de salida
     os.makedirs("conversaciones", exist_ok=True)
+    os.makedirs("data", exist_ok=True)
 
     def toast(msg):
         toasts.append(Toast(msg))
@@ -174,6 +187,7 @@ def main():
                     y = random.uniform(80,  WORLD_H-80)
                     c = Character(name, trait, backstory, x, y, random.choice(PALETTE))
                     characters.append(c)
+                    research.log_agent_spawn(c)
                     toast(f">> {name} ha entrado al mundo!")
                     if selected: selected.selected = False
                     selected = c; c.selected = True
@@ -219,14 +233,17 @@ def main():
                     toast("Mapa regenerado!")
 
                 elif k == pygame.K_g:
-                    # Re-generar todo el mundo con nuevos personajes
+                    # Flush final del mundo anterior y re-generar
+                    research.flush_social_graph(characters, sim_elapsed)
                     for c in characters:
                         if c._conv: c._conv.stop()
                     loading_screen(screen, fonts, "Regenerando mundo completo...", 0.0)
                     pygame.display.flip()
                     world_objects = generate_world()
                     characters    = generate_initial_characters(screen, fonts, ollama_ok)
-                    selected      = None
+                    for c in characters:
+                        research.log_agent_spawn(c)
+                    selected = None
                     toast(f"Mundo regenerado con {len(characters)} nuevas almas!")
 
                 elif k == pygame.K_l:
@@ -257,14 +274,23 @@ def main():
                     if selected: selected.selected = True; selected.blink = 0.3
 
         # ── Update ───────────────────────────
+        sim_elapsed += dt   # acumular solo tiempo activo (excluye pausa)
+
         toasts = [t for t in toasts if t.alive()]
         ollama_check_timer -= dt_raw
         if ollama_check_timer <= 0:
             ollama_ok = check_ollama()
             ollama_check_timer = 8.0
 
+        # Flush periódico del grafo social
+        graph_flush_timer -= dt
+        if graph_flush_timer <= 0:
+            research.flush_social_graph(characters, sim_elapsed)
+            graph_flush_timer = 60.0
+
         for c in characters:
             c.update(dt, world_objects, characters)
+            research.tick_needs_snapshot(c, sim_elapsed)
 
         # ── Draw ─────────────────────────────
         screen.fill(C_BG)
@@ -278,16 +304,29 @@ def main():
         draw_toasts(screen, font_sm, toasts)
         modal.draw(screen)
 
-        # HUD
+        # HUD principal
         hud = font_sm.render(
             f"WORLD SIMULATION  |  {len(characters)} almas  |  {clock.get_fps():.0f} fps  |  "
-            f"[N] Nuevo  [G] Regenerar mundo  [ESPACIO] Pausa  [T] Pensar  [L] Ver ruta logs",
+            f"[N] Nuevo  [G] Regen  [ESPACIO] Pausa  [T] Pensar  [L] Logs",
             True, C_DIM)
         screen.blit(hud, (8, 4))
-        wm = font_sm.render("Pygame + Ollama", True, (35,52,35))
-        screen.blit(wm, (SCREEN_W - wm.get_width()-8, 4))
+
+        # HUD investigación (esquina derecha)
+        convs_active = sum(1 for c in characters if c.state == "charlando" and c._is_initiator)
+        r_hud = font_sm.render(
+            f"Sesion: {research.session_id[-8:]}  |"
+            f"  Convs: {research._total_convs}  |"
+            f"  Turnos: {research._total_utterances}  |"
+            f"  Activas: {convs_active}  |"
+            f"  t={sim_elapsed:.0f}s",
+            True, (60, 120, 80))
+        screen.blit(r_hud, (SCREEN_W - r_hud.get_width() - 8, 4))
 
         pygame.display.flip()
+
+    # ── Cierre: guardar datos finales ─────────
+    research.flush_social_graph(characters, sim_elapsed)
+    research.log_session_end(agent_count=len(characters))
 
     pygame.quit()
     sys.exit()

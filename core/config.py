@@ -10,7 +10,7 @@ FPS = 30
 
 # Ollama
 OLLAMA_URL     = "http://localhost:11434/api/generate"
-OLLAMA_MODEL   = "llama3.2:3b"
+OLLAMA_MODEL   = "gemma4:e4b"
 OLLAMA_TIMEOUT = 80
 
 # Cuadrícula

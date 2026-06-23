@@ -47,7 +47,7 @@ def _generate_backstory_sync(name: str, trait: str, timeout: int = 15) -> str:
     prompt = (
         f"Crea una historia de origen breve (maximo 25 palabras, una sola frase) "
         f"para un personaje llamado {name} con personalidad {trait}. "
-        f"Responde SOLO con la historia, sin introduccion, sin comillas, en espanol. "
+        f"Responde SOLO con la historia, sin introduccion, sin comillas, en español. "
         f"Usa primera o tercera persona. Sin asteriscos ni saltos de linea."
     )
     try:

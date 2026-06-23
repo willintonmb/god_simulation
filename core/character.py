@@ -6,6 +6,19 @@ import pygame
 from core.config import *
 from core.ollama_client import ask_ollama_async
 
+# Referencia global al logger de investigación (se asigna desde main.py)
+_research_logger = None
+_sim_time_ref    = None   # función que devuelve el tiempo de simulación actual
+
+def set_research_logger(logger, sim_time_fn):
+    global _research_logger, _sim_time_ref
+    _research_logger = logger
+    _sim_time_ref    = sim_time_fn
+
+def _st() -> float:
+    """Tiempo de simulación actual en segundos."""
+    return _sim_time_ref() if _sim_time_ref else time.time()
+
 # ── Estados FSM ───────────────────────────────
 S_IDLE        = "descanso"
 S_WANDER      = "explorando"
@@ -88,8 +101,24 @@ class ConversationEngine:
         self.history: list[tuple[str,str]] = []
         self.num_turns = _num_turns(char_a.trait, char_b.trait)
         self._t        = threading.Thread(target=self._run, daemon=True)
+        # Research tracking
+        self._conv_id         = None
+        self._start_sim_time  = 0.0
+        self._start_dist      = 0.0
+        self._social_a_start  = char_a.social
+        self._social_b_start  = char_b.social
 
-    def start(self):  self._t.start()
+    def start(self):
+        self._start_sim_time = _st()
+        import math as _math
+        self._start_dist = _math.hypot(self.char_a.x - self.char_b.x,
+                                       self.char_a.y - self.char_b.y)
+        # Asignar conv_id y registrar borde social
+        if _research_logger:
+            self._conv_id = _research_logger.new_conversation_id()
+            _research_logger.log_social_edge(self.char_a, self.char_b, self._start_sim_time)
+        self._t.start()
+
     def stop(self):   self.active = False
 
     def _run(self):
@@ -125,7 +154,7 @@ class ConversationEngine:
             def _cb(txt, r=result, e=done): r["text"] = txt; e.set()
             ask_ollama_async(prompt, _cb, system=self.SYSTEM,
                              max_chars=220, num_predict=160)
-            done.wait(timeout=80)
+            done.wait(timeout=30)
 
             if not self.active:
                 break
@@ -134,14 +163,26 @@ class ConversationEngine:
             self.history.append((speaker.name, text))
             speaker.bubble = SpeechBubble(text)
 
+            # ── Log de turno de diálogo ──────
+            if _research_logger and self._conv_id:
+                _research_logger.log_utterance(
+                    conv_id    = self._conv_id,
+                    turn_index = turn,
+                    speaker    = speaker,
+                    listener   = listener,
+                    text       = text,
+                    sim_time   = _st(),
+                )
+
             wait = _reading_secs(text, extra=random.uniform(0.8, 2.0))
             deadline = time.time() + wait
             while time.time() < deadline and self.active:
                 time.sleep(0.1)
 
-        # Guardar log y notificar fin
+        # Fin
         self.active = False
         self._save_log()
+        self._save_research()
         self.char_a._conv_done = True
         self.char_b._conv_done = True
 
@@ -156,7 +197,25 @@ class ConversationEngine:
                 self.history,
             )
         except Exception as e:
-            print(f"[Logger] Error al guardar: {e}")
+            print(f"[Logger] Error al guardar txt: {e}")
+
+    def _save_research(self):
+        if not _research_logger or not self.history or not self._conv_id:
+            return
+        try:
+            _research_logger.log_conversation_end(
+                conv_id        = self._conv_id,
+                char_a         = self.char_a,
+                char_b         = self.char_b,
+                history        = self.history,
+                start_sim_time = self._start_sim_time,
+                end_sim_time   = _st(),
+                distance_px    = self._start_dist,
+                social_delta_a = self.char_a.social - self._social_a_start,
+                social_delta_b = self.char_b.social - self._social_b_start,
+            )
+        except Exception as e:
+            print(f"[ResearchLogger] conv_end error: {e}")
 
 
 # ── Clase Character ───────────────────────────
@@ -228,7 +287,7 @@ class Character:
             if self.target_obj is None: self._transition_idle(); return
             self._move_towards(self.target_obj.x, self.target_obj.y, dt, SPEED_NORMAL)
             if self._dist(self.target_obj.x, self.target_obj.y) < EAT_DIST:
-                self.state = S_EAT
+                self._set_state(S_EAT)
                 self.action_timer = random.uniform(4, 7)
                 self._say("Mmm, necesito comer algo...")
 
@@ -242,7 +301,7 @@ class Character:
             if self.target_obj is None: self._transition_idle(); return
             self._move_towards(self.target_obj.x, self.target_obj.y, dt, SPEED_SLOW)
             if self._dist(self.target_obj.x, self.target_obj.y) < EAT_DIST:
-                self.state = S_SLEEP
+                self._set_state(S_SLEEP)
                 self.action_timer = random.uniform(8, 14)
                 self._say("Que sueno tengo... a descansar.")
 
@@ -257,7 +316,7 @@ class Character:
             if self.target_obj is None: self._transition_idle(); return
             self._move_towards(self.target_obj.x, self.target_obj.y, dt, SPEED_NORMAL)
             if self._dist(self.target_obj.x, self.target_obj.y) < EAT_DIST:
-                self.state = S_SHOWER
+                self._set_state(S_SHOWER)
                 self.action_timer = random.uniform(4, 6)
                 self._say("Una ducha me vendra de maravilla.")
 
@@ -318,11 +377,11 @@ class Character:
                 chance = 0.20 if self.trait == "timido" else 0.70
                 if random.random() < chance:
                     self.target_char   = random.choice(candidates)
-                    self.state         = S_SEEK_CHAT
                     self._is_initiator = True
+                    self._set_state(S_SEEK_CHAT)
                     return
 
-        self.state  = S_WANDER
+        self._set_state(S_WANDER)
         self.dest_x = random.uniform(60, WORLD_W - 60)
         self.dest_y = random.uniform(60, WORLD_H - 60)
 
@@ -333,14 +392,14 @@ class Character:
         if not kind: return
         objs = [o for o in world_objects if o.kind == kind and o.is_free()]
         if not objs:
-            self.state  = S_WANDER
+            self._set_state(S_WANDER)
             self.dest_x = random.uniform(60, WORLD_W - 60)
             self.dest_y = random.uniform(60, WORLD_H - 60)
             return
         obj = min(objs, key=lambda o: self._dist(o.x, o.y))
         obj.reserve(self.id)
         self.target_obj = obj
-        self.state = state_map[kind]
+        self._set_state(state_map[kind])
 
     # ── Conversación ──────────────────────────
     def _start_conversation(self, other: "Character"):
@@ -362,8 +421,8 @@ class Character:
         other.x = max(other.radius, min(WORLD_W - other.radius, other.x))
         other.y = max(other.radius, min(WORLD_H - other.radius, other.y))
 
-        self.state  = S_CHAT
-        other.state = S_CHAT
+        self._set_state(S_CHAT)
+        other._set_state(S_CHAT)
         other.target_char   = self
         other._is_initiator = False
 
@@ -393,8 +452,21 @@ class Character:
             self.target_obj = None
 
     def _transition_idle(self):
-        self.state = S_IDLE
+        self._set_state(S_IDLE)
         self.idle_timer = random.uniform(1.5, 4)
+
+    def _set_state(self, new_state: str):
+        """Cambio de estado instrumentado para logging."""
+        if new_state == self.state:
+            return
+        if _research_logger:
+            try:
+                _research_logger.log_state_change(
+                    self, self.state, new_state, _st()
+                )
+            except Exception:
+                pass
+        self.state = new_state
 
     # ── Movimiento ────────────────────────────
     def _move_towards(self, tx, ty, dt, speed):
